@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { useLanguage } from "../context/LanguageContext.jsx";
+import AnimatedText from "./AnimatedText.jsx";
 
 // SVG placeholder for the product image (no real bottle asset yet).
 function BottlePlaceholder() {
@@ -29,37 +30,34 @@ function BottlePlaceholder() {
   );
 }
 
-export default function ProductsSection() {
+export default function ProductsSection({ active }) {
   const { t } = useLanguage();
 
   return (
-    <section
+    <motion.section
       id="products"
+      animate={{ opacity: active ? 1 : 0.4 }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       className="flex min-h-screen items-center justify-center px-6 py-20"
       style={{ fontFamily: t.font }}
     >
       <div className="w-full max-w-5xl text-center">
-        <motion.h2
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.5 }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-14 text-3xl font-extrabold sm:text-5xl"
+        <AnimatedText
+          text={t.products.heading}
+          active={active}
+          className="mb-14 block text-3xl font-extrabold sm:text-5xl"
           style={{ color: "var(--color-light)" }}
-        >
-          {t.products.heading}
-        </motion.h2>
+        />
 
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
           {t.products.sizes.map((size, i) => (
             <motion.div
               key={size}
               initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.4 }}
+              animate={active ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
               transition={{
                 duration: 0.6,
-                delay: i * 0.1,
+                delay: active ? i * 0.1 : 0,
                 ease: [0.22, 1, 0.36, 1],
               }}
               className="flex flex-col items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-sm transition-colors duration-300 hover:bg-white/10"
@@ -70,6 +68,6 @@ export default function ProductsSection() {
           ))}
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 }
