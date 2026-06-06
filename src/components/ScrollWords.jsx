@@ -19,7 +19,6 @@ export default function ScrollWords({ text, className, style }) {
             whiteSpace: "pre",
             opacity: 0,
             transform: "translateY(20px)",
-            willChange: "opacity, transform",
           }}
         >
           {w}

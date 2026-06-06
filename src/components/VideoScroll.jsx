@@ -90,7 +90,7 @@ export default function VideoScroll() {
       // Video: smooth scrub via lerp + zoom.
       if (video && !fallback) {
         if (video.duration && !Number.isNaN(video.duration)) {
-          currentTime = lerp(currentTime, targetTime, 0.15);
+          currentTime = lerp(currentTime, targetTime, 0.3);
           if (
             video.readyState >= 2 &&
             Math.abs(currentTime - video.currentTime) > 0.01
@@ -165,6 +165,7 @@ export default function VideoScroll() {
             playsInline
             autoPlay
             preload="auto"
+            fetchPriority="high"
             onError={() => setFallback(true)}
             style={{
               position: "fixed",

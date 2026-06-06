@@ -72,7 +72,7 @@ export default function ProductsSection() {
     <section
       id="products"
       data-section-index="2"
-      className="flex min-h-screen flex-col items-center justify-center px-6 pt-[10vh] pb-20"
+      className="flex min-h-screen flex-col items-center justify-center px-6 pt-[5vh] pb-20"
       style={{ fontFamily: t.font }}
     >
       <div className="w-full max-w-5xl text-center">
@@ -81,7 +81,7 @@ export default function ProductsSection() {
           className="mb-14 block font-extrabold"
           style={{
             color: "var(--color-light)",
-            fontSize: "clamp(2rem, 5vw, 4rem)",
+            fontSize: "clamp(1.5rem, 4vw, 3rem)",
             textShadow: "0 2px 20px rgba(0,0,0,0.8)",
           }}
         />

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
 import { useLanguage } from "../context/LanguageContext.jsx";
 
 export default function Navbar() {
@@ -25,12 +24,12 @@ export default function Navbar() {
   ];
 
   return (
-    <motion.nav
-      initial={{ y: 0 }}
-      animate={{ y: hidden ? "-120%" : "0%" }}
-      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed inset-x-0 top-0 z-50 flex items-center justify-between px-6 py-5 sm:px-10"
-      style={{ fontFamily: t.font }}
+    <nav
+      className="fixed inset-x-0 top-0 z-50 flex items-center justify-between px-6 py-5 transition-transform duration-[400ms] ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-10"
+      style={{
+        fontFamily: t.font,
+        transform: hidden ? "translateY(-120%)" : "translateY(0)",
+      }}
     >
       <a
         href="#hero"
@@ -63,6 +62,6 @@ export default function Navbar() {
           {lang === "en" ? "🇪🇬" : "🇺🇸"}
         </button>
       </div>
-    </motion.nav>
+    </nav>
   );
 }
