@@ -3,6 +3,10 @@ import { useEffect, useRef, useState } from "react";
 const VIDEO_SRC = `${import.meta.env.BASE_URL}videos/Dasani.mp4`;
 const SECTION_COUNT = 4;
 const SECTION_SPAN = 1 / SECTION_COUNT; // 25% of scroll per section
+// Words finish revealing within the first half of a section's scroll band, so
+// even long paragraphs (About) are fully shown while the section is still in
+// view — instead of the last words landing right as the section scrolls away.
+const REVEAL_PORTION = 0.5;
 const DESKTOP_MIN = 768;
 
 /**
@@ -121,10 +125,13 @@ export default function VideoScroll() {
           1,
           Math.max(0, (progress - idx * SECTION_SPAN) / SECTION_SPAN)
         );
+        // Compress the reveal into the first part of the band so all words
+        // are shown before the section leaves the screen.
+        const reveal = Math.min(1, local / REVEAL_PORTION);
         const words = el.querySelectorAll("[data-word]");
         const total = words.length || 1;
         words.forEach((word, n) => {
-          const t = Math.min(1, Math.max(0, local * total - n));
+          const t = Math.min(1, Math.max(0, reveal * total - n));
           word.style.opacity = String(t);
           word.style.transform = `translateY(${20 * (1 - t)}px)`;
         });
