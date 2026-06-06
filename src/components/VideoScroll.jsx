@@ -35,6 +35,9 @@ export default function VideoScroll() {
 
     const probeAutoplay = () => {
       const isDesktop = window.innerWidth >= DESKTOP_MIN;
+      // Looping is enabled for desktop only, via JS, so the mobile element
+      // stays exactly as it was (no loop attribute applied to it).
+      if (isDesktop) video.loop = true;
       video
         .play()
         .then(() => {
@@ -142,7 +145,6 @@ export default function VideoScroll() {
             muted
             playsInline
             autoPlay
-            loop
             preload="auto"
             fetchPriority="high"
             onError={() => setFallback(true)}
