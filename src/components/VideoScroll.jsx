@@ -1,12 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
 const VIDEO_SRC = `${import.meta.env.BASE_URL}videos/Dasani.mp4`;
-const SECTION_COUNT = 4;
-const SECTION_SPAN = 1 / SECTION_COUNT; // 25% of scroll per section
-// Words finish revealing within the first half of a section's scroll band, so
-// even long paragraphs (About) are fully shown while the section is still in
-// view — instead of the last words landing right as the section scrolls away.
-const REVEAL_PORTION = 0.5;
 const DESKTOP_MIN = 768;
 
 /**
@@ -78,73 +72,48 @@ export default function VideoScroll() {
     };
   }, []);
 
-  // Single rAF loop: a passive scroll listener stores scroll progress. On
-  // mobile the loop scrubs video.currentTime; on all devices it drives the
-  // per-word text reveal. (Desktop video plays on its own — no scrubbing.)
+  // Mobile only: smooth scroll-driven video scrubbing. A passive scroll
+  // listener stores the target time; a single rAF loop lerps toward it.
+  // (Desktop plays on its own as a loop; text reveal is handled by ScrollWords.)
   useEffect(() => {
     const lerp = (a, b, t) => a + (b - a) * t;
 
-    let progress = 0; // latest scroll progress (drives text + mobile scrub)
     let targetTime = 0; // where the mobile video should seek to
-    let currentTime = 0; // interpolated playhead (mobile)
+    let currentTime = 0; // interpolated playhead
 
-    const readProgress = () => {
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      progress = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    const readTarget = () => {
       const video = videoRef.current;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
       if (video && video.duration && !Number.isNaN(video.duration)) {
         targetTime = progress * video.duration;
       }
     };
 
     const loop = () => {
-      // Mobile only: smooth scroll-driven scrubbing via lerp.
       const isMobile = window.innerWidth < DESKTOP_MIN;
       const video = videoRef.current;
-      if (isMobile && video) {
-        if (video.duration && !Number.isNaN(video.duration)) {
-          currentTime = lerp(currentTime, targetTime, 0.3);
-          if (
-            video.readyState >= 2 &&
-            Math.abs(currentTime - video.currentTime) > 0.01
-          ) {
-            try {
-              video.currentTime = currentTime;
-            } catch {
-              /* seeking before ready — ignore */
-            }
+      if (isMobile && video && video.duration && !Number.isNaN(video.duration)) {
+        currentTime = lerp(currentTime, targetTime, 0.3);
+        if (
+          video.readyState >= 2 &&
+          Math.abs(currentTime - video.currentTime) > 0.01
+        ) {
+          try {
+            video.currentTime = currentTime;
+          } catch {
+            /* seeking before ready — ignore */
           }
         }
       }
-
-      // Text: per-word reveal driven by each section's local progress.
-      const sections = document.querySelectorAll("[data-section-index]");
-      sections.forEach((el) => {
-        const idx = Number(el.dataset.sectionIndex);
-        const local = Math.min(
-          1,
-          Math.max(0, (progress - idx * SECTION_SPAN) / SECTION_SPAN)
-        );
-        // Compress the reveal into the first part of the band so all words
-        // are shown before the section leaves the screen.
-        const reveal = Math.min(1, local / REVEAL_PORTION);
-        const words = el.querySelectorAll("[data-word]");
-        const total = words.length || 1;
-        words.forEach((word, n) => {
-          const t = Math.min(1, Math.max(0, reveal * total - n));
-          word.style.opacity = String(t);
-          word.style.transform = `translateY(${20 * (1 - t)}px)`;
-        });
-      });
-
       rafRef.current = requestAnimationFrame(loop);
     };
 
-    const onScroll = () => readProgress();
+    const onScroll = () => readTarget();
 
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
-    readProgress(); // initialize at load
+    readTarget(); // initialize at load
     rafRef.current = requestAnimationFrame(loop);
 
     return () => {
