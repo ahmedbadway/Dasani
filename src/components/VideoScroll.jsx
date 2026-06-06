@@ -66,20 +66,41 @@ export default function VideoScroll() {
     };
   }, []);
 
-  // The one and only scroll-driven loop.
+  // The one and only loop: a passive scroll listener stores the target scroll
+  // progress; a continuous rAF loop lerps video.currentTime toward the target
+  // for smooth scrubbing, and drives zoom + per-word text from that progress.
   useEffect(() => {
     const video = videoRef.current;
 
-    const run = () => {
-      rafRef.current = 0;
+    const lerp = (a, b, t) => a + (b - a) * t;
 
+    let progress = 0; // latest scroll progress (drives zoom + text)
+    let targetTime = 0; // where the video should seek to
+    let currentTime = 0; // interpolated playhead
+
+    const readProgress = () => {
       const max = document.body.scrollHeight - window.innerHeight;
-      const progress = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+      progress = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+      if (video && video.duration && !Number.isNaN(video.duration)) {
+        targetTime = progress * video.duration;
+      }
+    };
 
-      // Video: scrub + zoom.
+    const loop = () => {
+      // Video: smooth scrub via lerp + zoom.
       if (video && !fallback) {
         if (video.duration && !Number.isNaN(video.duration)) {
-          video.currentTime = progress * video.duration;
+          currentTime = lerp(currentTime, targetTime, 0.15);
+          if (
+            video.readyState >= 2 &&
+            Math.abs(currentTime - video.currentTime) > 0.01
+          ) {
+            try {
+              video.currentTime = currentTime;
+            } catch {
+              /* seeking before ready — ignore */
+            }
+          }
         }
         const scale = 1 + progress * (MAX_SCALE - 1);
         video.style.transform = `scale(${scale}) translateZ(0)`;
@@ -101,16 +122,16 @@ export default function VideoScroll() {
           word.style.transform = `translateY(${20 * (1 - t)}px)`;
         });
       });
+
+      rafRef.current = requestAnimationFrame(loop);
     };
 
-    const onScroll = () => {
-      if (rafRef.current) return;
-      rafRef.current = requestAnimationFrame(run);
-    };
+    const onScroll = () => readProgress();
 
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
-    run(); // initialize at load
+    readProgress(); // initialize at load
+    rafRef.current = requestAnimationFrame(loop);
 
     return () => {
       window.removeEventListener("scroll", onScroll);
