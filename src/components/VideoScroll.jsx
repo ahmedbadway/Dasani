@@ -3,17 +3,21 @@ import { useEffect, useRef, useState } from "react";
 const VIDEO_SRC = `${import.meta.env.BASE_URL}videos/Dasani.mp4`;
 const SECTION_COUNT = 4;
 const SECTION_SPAN = 1 / SECTION_COUNT; // 25% of scroll per section
+const DESKTOP_MIN = 768;
 
 /**
- * Core feature. A single requestAnimationFrame loop, fed by a passive scroll
- * listener, drives EVERYTHING from one scroll progress value:
- *   - video.currentTime = progress * duration  (scrubbing)
- *   - video zoom: scale 1.0 -> 1.12
- *   - per-word text reveal in every section, by each section's local progress
+ * Fixed fullscreen background video.
  *
- * The video is preloaded as a Blob URL for smooth scrubbing, autoplays
- * muted/inline on mobile, and shows a "Tap to start" overlay if blocked.
- * Falls back to an animated gradient when the mp4 is missing.
+ * Desktop (>= 768px): the video plays continuously and loops as a smooth
+ * cinematic background — native decode, no per-frame seeking, so no scrubbing
+ * stutter. Scroll drives only the per-word text reveal.
+ *
+ * Mobile (< 768px): behavior is intentionally left untouched — the video is
+ * probed for autoplay then paused on its first frame (static poster look),
+ * with a "Tap to start" overlay if autoplay is blocked.
+ *
+ * The video is preloaded as a Blob URL for a fast start, and falls back to an
+ * animated gradient when the mp4 is missing.
  */
 export default function VideoScroll() {
   const videoRef = useRef(null);
@@ -30,10 +34,13 @@ export default function VideoScroll() {
     let cancelled = false;
 
     const probeAutoplay = () => {
+      const isDesktop = window.innerWidth >= DESKTOP_MIN;
       video
         .play()
         .then(() => {
-          video.pause(); // playback position is driven by scroll
+          // Desktop: keep playing (looping ambient background).
+          // Mobile: pause on the first frame (unchanged behavior).
+          if (!isDesktop) video.pause();
           setNeedsTap(false);
         })
         .catch(() => setNeedsTap(true));
@@ -65,47 +72,18 @@ export default function VideoScroll() {
     };
   }, []);
 
-  // The one and only loop: a passive scroll listener stores the target scroll
-  // progress; a continuous rAF loop lerps video.currentTime toward the target
-  // for smooth scrubbing, and drives zoom + per-word text from that progress.
+  // Single rAF loop: a passive scroll listener stores scroll progress, and the
+  // loop drives the per-word text reveal in every section from it. The video
+  // is no longer scrubbed — it plays on its own for a smooth visual.
   useEffect(() => {
-    const video = videoRef.current;
-
-    const lerp = (a, b, t) => a + (b - a) * t;
-
-    let progress = 0; // latest scroll progress (drives zoom + text)
-    let targetTime = 0; // where the video should seek to
-    let currentTime = 0; // interpolated playhead
+    let progress = 0;
 
     const readProgress = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
       progress = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
-      if (video && video.duration && !Number.isNaN(video.duration)) {
-        targetTime = progress * video.duration;
-      }
     };
 
     const loop = () => {
-      // Video: smooth scrub via lerp — desktop only (>= 768px).
-      // On mobile the video is left exactly as is (no scroll scrubbing).
-      const isDesktop = window.innerWidth >= 768;
-      if (isDesktop && video && !fallback) {
-        if (video.duration && !Number.isNaN(video.duration)) {
-          currentTime = lerp(currentTime, targetTime, 0.3);
-          if (
-            video.readyState >= 2 &&
-            Math.abs(currentTime - video.currentTime) > 0.01
-          ) {
-            try {
-              video.currentTime = currentTime;
-            } catch {
-              /* seeking before ready — ignore */
-            }
-          }
-        }
-      }
-
-      // Text: per-word reveal driven by each section's local progress.
       const sections = document.querySelectorAll("[data-section-index]");
       sections.forEach((el) => {
         const idx = Number(el.dataset.sectionIndex);
@@ -137,15 +115,16 @@ export default function VideoScroll() {
       window.removeEventListener("resize", onScroll);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [fallback]);
+  }, []);
 
   const handleTap = () => {
     const video = videoRef.current;
     if (!video) return;
+    const isDesktop = window.innerWidth >= DESKTOP_MIN;
     video
       .play()
       .then(() => {
-        video.pause();
+        if (!isDesktop) video.pause();
         setNeedsTap(false);
       })
       .catch(() => {
@@ -163,6 +142,7 @@ export default function VideoScroll() {
             muted
             playsInline
             autoPlay
+            loop
             preload="auto"
             fetchPriority="high"
             onError={() => setFallback(true)}
