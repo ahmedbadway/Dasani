@@ -1,45 +1,25 @@
 #!/bin/bash
+# Ahmed Badway — Setup Script
+# Claude Code Web
 
-# ============================================
-# Ahmed Badway — Dasani Setup Script
-# ============================================
+echo "🌊 Setting up project..."
 
-set -e
+# 1. Fetch CLAUDE.md from GitHub
+echo "📥 Loading CLAUDE.md..."
+curl -s https://raw.githubusercontent.com/ahmedbadway/your-actual-repo/main/CLAUDE.md > CLAUDE.md
 
-echo "🌊 Dasani — Starting setup..."
-
-# ── 1. Clone if needed ─────────────────────
-if [ ! -d ".git" ]; then
-  echo "📦 Cloning repo..."
-  git clone https://github.com/ggtxk9bkbf-glitch/Dasani.git .
-fi
-
-# ── 2. Main branch only ────────────────────
-CURRENT=$(git branch --show-current 2>/dev/null || echo "")
-if [ "$CURRENT" != "main" ]; then
-  git checkout main 2>/dev/null || git checkout -b main
-fi
-echo "✅ Branch: main"
-
-# ── 3. Install Skills ──────────────────────
-echo ""
-echo "📦 Installing Skills..."
-npx --yes skills add emilkowalski/skill 2>/dev/null && echo "✅ Emil Kowalski" || echo "⚠️ Emil skipped"
-npx --yes skills add pbakaus/impeccable 2>/dev/null && echo "✅ Impeccable" || echo "⚠️ Impeccable skipped"
-npx --yes skills add Leonxlnx/taste-skill 2>/dev/null && echo "✅ Taste Skill" || echo "⚠️ Taste Skill skipped"
-
-# ── 4. Install packages ────────────────────
-echo ""
-echo "📦 Installing packages..."
+# 2. Install dependencies
 if [ -f "package.json" ]; then
+  echo "📦 Installing packages..."
   npm install
   npm install motion
-  echo "✅ Packages ready"
+  npm install -D @playwright/test
+  echo "✅ Dependencies ready"
 else
-  echo "⚠️ No package.json yet — Claude Code will scaffold the project"
+  echo "⚠️  No package.json — Claude Code will scaffold first"
 fi
 
 echo ""
 echo "✅ Setup complete!"
-echo "🌿 Branch: main"
-echo "🎨 Skills: Emil + Impeccable + Taste Skill"
+echo "Run E2E tests: npm run test:e2e"
+echo "Remember: Work on main branch only. No new branches."
